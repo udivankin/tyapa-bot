@@ -1,0 +1,19 @@
+{
+  "name": "tyapa-bot",
+  "version": "1.0.0",
+  "description": "Favorite pet feeder bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "allx",
+  "license": "ISC",
+  "dependencies": {
+    "bluebird": "^3.5.0",
+    "lodash": "^4.17.4",
+    "log4js": "^1.1.1",
+    "mqtt": "^2.4.0",
+    "node-schedule": "^1.2.0",
+    "node-telegram-bot-api": "^0.27.0"
+  }
+}
