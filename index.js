@@ -6,18 +6,17 @@ const logger = require('./logger.js');
 const telebot = new TelegramBot(config.token, { polling: true });
 const client = mqtt.connect(config.mqttHost, config.mqttOptions);
 
+client.subscribe(config.mqttSubscribeTopic);
+
 const feed = () => {
-  config.userIds.forEach(
-    userId => telebot.sendMessage(userId, 'Yum yum yum!')
-  );
-  client.publish('inTopic', '1');
+  client.publish(config.mqttPublishTopic, config.mqttPublishMessage);
 };
 
 const getCanFeed = ({ id }) => config.userIds.indexOf(id) !== -1;
 
-const sendJob = schedule.scheduleJob('* */4 * * *', feed);
+const sendJob = schedule.scheduleJob(config.schedule, feed);
 
-const processCommand = (user, command) => {
+const processTeleCommand = (user, command) => {
   switch (command) {
     case 'feed':
       if (getCanFeed(user)) {
@@ -35,15 +34,22 @@ const processCommand = (user, command) => {
     }
 }
 
-const processMessage = (message) => {
+const processTeleMessage = (message) => {
   const { from, text } = message;
   const command = text.match(/\/(.+)/);
 
   logger.info('Message received:', from.username, text);
 
   if (command) {
-    processCommand(from, command.pop());
+    processTeleCommand(from, command.pop());
   }
 }
 
-telebot.on('message', processMessage);
+const processMqttMessage = (topic, message) => {
+  config.userIds.forEach(
+    userId => telebot.sendMessage(userId, message)
+  );
+}
+
+client.on('message', processMqttMessage);
+telebot.on('message', processTeleMessage);
