@@ -1,6 +1,4 @@
-const Promise = require('bluebird');
-const _ = require('lodash');
-var mqtt = require('mqtt');
+const mqtt = require('mqtt');
 const schedule = require('node-schedule');
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config.js');
@@ -15,12 +13,20 @@ const feed = () => {
   client.publish('inTopic', '1');
 };
 
+const getCanFeed = ({ id }) => config.userIds.indexOf(id) !== -1;
+
 const sendJob = schedule.scheduleJob('* */4 * * *', feed);
 
 const processCommand = (user, command) => {
   switch (command) {
     case 'feed':
-      feed();
+      if (getCanFeed(user)) {
+        feed();
+      } else {
+        telebot.sendMessage(user.id, 'You can not feed our pet, sorry!');
+        logger.warn('Intrusion alert!', user, command);
+      }
+
       break;
 
     default:
