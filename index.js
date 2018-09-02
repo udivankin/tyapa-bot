@@ -68,7 +68,7 @@ const broadcastMessage = (message) => {
 const processMqttMessage = (topic, payload) => {
   logger.info(`MQTT message received [topic] ${topic} [payload] ${payload}`);
 
-  let message = `${topic} : ${payload}`;
+  let message = '';
 
   switch (topic) {
     case config.mqttSubscribeCallbackTopic:
@@ -76,6 +76,7 @@ const processMqttMessage = (topic, payload) => {
       logger.info(message);
       break;
     case config.mqttSubscribeSuccessTopic:
+      message = payload;
       logger.info(`Feed detected: ${payload}`);
       break;
     case config.mqttSubscribeFailTopic:
