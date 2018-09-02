@@ -1,18 +1,19 @@
-const path = require('path');
 const log4js = require('log4js');
+const readLastLines = require('read-last-lines');
+
+const filename = `${__dirname}/logs/event.log`;
 
 log4js.configure({
   appenders: {
     stdout: { type: 'stdout' },
-    eventLog: { type: 'file', filename: path.resolve(__dirname, '../logs/event.log') },
+    main: { type: 'file', filename },
   },
   categories: {
-    default: { appenders: ['stdout'], level: 'debug' },
-    event: { appenders: ['stdout', 'eventLog'], level: 'info' },
-    error: { appenders: ['stdout', 'eventLog'], level: 'error' },
+    default: { appenders: ['stdout', 'main'], level: 'debug' },
   }
 });
 
 module.exports = {
-  logger: log4js.getLogger('event'),
+  getLastLogs: (count = 100) => readLastLines.read(filename, count),
+  logger: log4js.getLogger('main'),
 };

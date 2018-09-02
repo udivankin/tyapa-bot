@@ -2,7 +2,7 @@ const mqtt = require('mqtt');
 const scheduler = require('node-schedule');
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config.js');
-const logger = require('./logger.js');
+const { logger, getLastLogs } = require('./logger.js');
 const telebot = new TelegramBot(config.token, { polling: true });
 const client = mqtt.connect(config.mqttHost, config.mqttOptions);
 
@@ -26,6 +26,18 @@ const processTeleCommand = (user, command) => {
         feed();
       } else {
         telebot.sendMessage(user.id, 'You can not feed our pet, sorry!');
+        logger.warn('Intrusion alert!', user);
+      }
+
+      break;
+
+    case 'logs':
+      if (getCanFeed(user)) {
+        getLastLogs().then((logs) => {
+          telebot.sendMessage(user.id, logs);
+        });
+      } else {
+        telebot.sendMessage(user.id, 'You can not get logs, sorry!');
         logger.warn('Intrusion alert!', user);
       }
 
@@ -75,3 +87,5 @@ const processMqttMessage = (topic, payload) => {
 
 client.on('message', processMqttMessage);
 telebot.on('message', processTeleMessage);
+
+logger.info('Tyapa feeder bot has been started');
