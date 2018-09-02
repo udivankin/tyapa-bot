@@ -1,5 +1,5 @@
 const mqtt = require('mqtt');
-const schedule = require('node-schedule');
+const { CronJob } = require('cron');
 const TelegramBot = require('node-telegram-bot-api');
 const config = require('./config.js');
 const logger = require('./logger.js');
@@ -14,7 +14,7 @@ const feed = () => {
 
 const getCanFeed = ({ id }) => config.userIds.indexOf(id) !== -1;
 
-const sendJob = schedule.scheduleJob(config.schedule, feed);
+const feedJob = new CronJob(config.schedule, feed, null, null, config.timeZone);
 
 const processTeleCommand = (user, command) => {
   switch (command) {
