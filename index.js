@@ -52,7 +52,7 @@ const processTeleMessage = (message) => {
   const { from, text } = message;
   const command = text.match(/\/(.+)/);
 
-  logger.info('Message received:', from.username, text);
+  logger.info('Telegram message received:', from.username, text);
 
   if (command) {
     processTeleCommand(from, command.pop());
@@ -66,6 +66,8 @@ const broadcastMessage = (message) => {
 }
 
 const processMqttMessage = (topic, payload) => {
+  logger.info(`MQTT message received [topic] ${topic} [payload] ${payload}`);
+
   let message = `${topic} : ${payload}`;
 
   switch (topic) {
