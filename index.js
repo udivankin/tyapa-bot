@@ -20,27 +20,26 @@ const getCanFeed = ({ id }) => config.userIds.indexOf(id) !== -1;
 const feedJob = scheduler.scheduleJob(config.schedule, feed);
 
 const processTeleCommand = (user, command) => {
+  if (!getCanFeed(user)) {
+    telebot.sendMessage(user.id, 'You can not feed our pet, sorry!');
+    logger.warn('Intrusion alert!', user);
+    return;
+  }
+
   switch (command) {
     case 'feed':
-      if (getCanFeed(user)) {
-        feed();
-      } else {
-        telebot.sendMessage(user.id, 'You can not feed our pet, sorry!');
-        logger.warn('Intrusion alert!', user);
-      }
-
+      feed();
       break;
 
     case 'logs':
-      if (getCanFeed(user)) {
-        getLastLogs().then((logs) => {
-          telebot.sendMessage(user.id, logs);
-        });
-      } else {
-        telebot.sendMessage(user.id, 'You can not get logs, sorry!');
-        logger.warn('Intrusion alert!', user);
-      }
+      getLastLogs().then((logs) => {
+        telebot.sendMessage(user.id, logs);
+      });
 
+      break;
+
+    case 'time':
+      telebot.sendMessage(user.id, feedJob.nextInvocation().toString());
       break;
 
     default:
