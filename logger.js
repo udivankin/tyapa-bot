@@ -14,6 +14,6 @@ log4js.configure({
 });
 
 module.exports = {
-  getLastLogs: (count = 100) => readLastLines.read(filename, count),
+  getLastLogs: (count = 25) => readLastLines.read(filename, count),
   logger: log4js.getLogger('main'),
 };
