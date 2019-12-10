@@ -1,17 +1,21 @@
 const mqtt = require('mqtt');
-const TelegramBot = require('node-telegram-bot-api');
+const Telegraf = require('telegraf')
 const config = require('./config.js');
 const { logger, getLastLogs } = require('./logger.js');
-const telebot = new TelegramBot(config.token, { polling: true });
+const telebot = new Telegraf(config.token);
 const client = mqtt.connect(config.mqttHost, config.mqttOptions);
 
 // Set process timezone
 process.env.TZ = config.timeZone;
 
-const publishFeed = () => {
-  logger.info('Publish ' + config.mqttPublishTopicFeed);
-  client.publish(config.mqttPublishTopicFeed, Buffer.from([0x01]));
-};
+const feedHistory = new Set();
+
+const getCurrentTime = () => {
+  const date = new Date();
+  const hrs = String(date.getHours()).padStart(2, '0');
+  const mns = String(date.getMinutes()).padStart(2, '0');
+  return `${hrs}:${mns}`;
+}
 
 const publishSyncTime = () => {
   // Expected time format is 6 bytes hr, min, sec, day, month, year
@@ -47,55 +51,46 @@ const publishGetStatus = () => {
   client.publish(config.mqttPublishTopicGetStatus, '');
 };
 
-const getCanFeed = ({ id }) => config.userIds.indexOf(id) !== -1;
-
-const processTeleCommand = (user, command, payload) => {
-  if (!getCanFeed(user)) {
-    telebot.sendMessage(user.id, 'You can not feed our pet, sorry!');
-    logger.warn('Intrusion alert!', user);
-    return;
+const checkCanFeed = (ctx) => {
+  const canFeed = config.userIds.indexOf(ctx.from.id) !== -1;
+  if (!canFeed) {
+    ctx.reply('You can not feed our pet, sorry!');
+    logger.warn('Intrusion alert!', ctx.from);
   }
+  return canFeed;
+};
 
-  switch (command) {
-    case 'feed':
-      publishFeed();
-      break;
+telebot.command('feed', (ctx) => {
+  if (!checkCanFeed(ctx)) return;
+  logger.info('Publish ' + config.mqttPublishTopicFeed);
+  client.publish(config.mqttPublishTopicFeed, Buffer.from([0x01]));
+})
 
-    case 'logs':
-      getLastLogs().then((logs) => {
-        telebot.sendMessage(user.id, logs);
-      });
-      break;
 
-    case 'get_status':
-      publishGetStatus();
-      telebot.sendMessage(user.id, 'Check logs whether device has answered');
-      break;
+telebot.command('logs', (ctx) => {
+  if (!checkCanFeed(ctx)) return;
+  getLastLogs().then((logs) => {
+    ctx.reply(logs);
+  });
+})
 
-    case 'set_timers':
-      if (publishSetTimers(payload)) {
-        telebot.sendMessage(user.id, 'Set timers ok, check logs if device was rebooted with the new timers');
-      } else {
-        telebot.sendMessage(user.id, 'Wrong payload given, shuold be roughly 6 timers in hh:mm;hh:mm;hh:mm;hh:mm;hh:mm;hh:mm format');
-      }
-      break;
+telebot.command('get_status', (ctx) => {
+  if (!checkCanFeed(ctx)) return;
+  publishGetStatus();
+  ctx.reply('Check logs whether device has answered');
+})
 
-    default:
-      logger.warn(`Unknown command received: ${command}`);
-      break;
-    }
-}
+telebot.command('set_timers', (ctx) => {
+  if (!checkCanFeed(ctx)) return;
+  const payload = ctx.match;
+  console.log({ payload });
 
-const processTeleMessage = (message) => {
-  const { from, text } = message;
-  const [match, command, payload] = text.match(/^\/(.+?)(?:\s)(.+)$/) || text.match(/^\/([_-\w]+)$/) || [null, null, null];
-
-  logger.info(`Telegram message received: [${from.username}]: ${text}`);
-
-  if (command) {
-    processTeleCommand(from, command, payload);
+  if (publishSetTimers(payload)) {
+    ctx.reply('Set timers ok, check logs if device was rebooted with the new timers');
+  } else {
+    ctx.reply('Wrong payload given, shuold be roughly 6 timers in hh:mm;hh:mm;hh:mm;hh:mm;hh:mm;hh:mm format');
   }
-}
+})
 
 const broadcastMessage = (message) => {
   config.userIds.forEach(
@@ -108,7 +103,8 @@ const processMqttMessage = (topic, payload) => {
 
   switch (topic) {
     case config.mqttSubscribeTopicFeedCallback:
-      broadcastMessage(payload);
+      feedHistory.add(getCurrentTime());
+      broadcastMessage(`😻 ${payload}`);
       break;
     case config.mqttSubscribeTopicDebug:
       // nothing special, just save logs
@@ -130,4 +126,11 @@ client.on('connect', () => {
 
 client.on('message', processMqttMessage);
 
-telebot.on('message', processTeleMessage);
+var CronJob = require('cron').CronJob;
+
+new CronJob('0 0 * * * *', function() {
+  config.userIds.forEach(
+    userId => telebot.sendMessage(userId, `🐈 ${feedHistory.size} meals today: ${[...feedHistory].join(' ')}`)
+  );
+  feedHistory.clear();
+}, null, true, config.timeZone);
