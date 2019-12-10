@@ -141,7 +141,7 @@ client.on('offline', () => logger.error('MQTT client offline'));
 
 var CronJob = require('cron').CronJob;
 
-new CronJob('0 0 * * * *', function() {
+new CronJob('0 0 * * *', function() {
   config.userIds.forEach(
     userId => telegram.sendMessage(userId, `🐈 ${feedHistory.size} meals today: ${[...feedHistory].join(' ')}`)
   );
