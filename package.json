@@ -9,9 +9,9 @@
   "author": "allx",
   "license": "ISC",
   "dependencies": {
+    "cron": "1.7.2",
     "log4js": "6.1.0",
     "mqtt": "3.0.0",
-    "node-cron": "2.0.3",
     "read-last-lines": "1.7.1",
     "telegraf": "3.34.1"
   }

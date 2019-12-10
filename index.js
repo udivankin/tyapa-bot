@@ -82,15 +82,22 @@ telebot.command('get_status', (ctx) => {
 
 telebot.command('set_timers', (ctx) => {
   if (!checkCanFeed(ctx)) return;
-  const payload = ctx.match;
-  console.log({ payload });
+  const payload = ctx.message.text.slice(12);
 
   if (publishSetTimers(payload)) {
-    ctx.reply('Set timers ok, check logs if device was rebooted with the new timers');
+    const response = 'Set timers ok, check logs if device was rebooted with the new timers';
+    ctx.reply(response);
+    logger.info(response)
   } else {
-    ctx.reply('Wrong payload given, shuold be roughly 6 timers in hh:mm;hh:mm;hh:mm;hh:mm;hh:mm;hh:mm format');
+    const response = 'Wrong payload given, shuold be roughly 6 timers in hh:mm;hh:mm;hh:mm;hh:mm;hh:mm;hh:mm format';
+    ctx.reply(response);
+    logger.warn(response)
   }
 })
+
+telebot.launch()
+  .then(() => logger.info('Telegram bot started in polling mode'))
+  .catch((e) => logger.error('Telegram bot error', e));
 
 const broadcastMessage = (message) => {
   config.userIds.forEach(
@@ -125,6 +132,10 @@ client.on('connect', () => {
 });
 
 client.on('message', processMqttMessage);
+
+client.on('error', () => logger.error('MQTT connection error'));
+
+client.on('offline', () => logger.error('MQTT client offline'));
 
 var CronJob = require('cron').CronJob;
 
