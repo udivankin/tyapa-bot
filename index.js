@@ -1,8 +1,10 @@
 const mqtt = require('mqtt');
 const Telegraf = require('telegraf')
+const Telegram = require('telegraf/telegram')
 const config = require('./config.js');
 const { logger, getLastLogs } = require('./logger.js');
-const telebot = new Telegraf(config.token);
+const telegraf = new Telegraf(config.token);
+const telegram = new Telegram(config.token);
 const client = mqtt.connect(config.mqttHost, config.mqttOptions);
 
 // Set process timezone
@@ -60,27 +62,27 @@ const checkCanFeed = (ctx) => {
   return canFeed;
 };
 
-telebot.command('feed', (ctx) => {
+telegraf.command('feed', (ctx) => {
   if (!checkCanFeed(ctx)) return;
   logger.info('Publish ' + config.mqttPublishTopicFeed);
   client.publish(config.mqttPublishTopicFeed, Buffer.from([0x01]));
 })
 
 
-telebot.command('logs', (ctx) => {
+telegraf.command('logs', (ctx) => {
   if (!checkCanFeed(ctx)) return;
   getLastLogs().then((logs) => {
     ctx.reply(logs);
   });
 })
 
-telebot.command('get_status', (ctx) => {
+telegraf.command('get_status', (ctx) => {
   if (!checkCanFeed(ctx)) return;
   publishGetStatus();
   ctx.reply('Check logs whether device has answered');
 })
 
-telebot.command('set_timers', (ctx) => {
+telegraf.command('set_timers', (ctx) => {
   if (!checkCanFeed(ctx)) return;
   const payload = ctx.message.text.slice(12);
 
@@ -95,13 +97,13 @@ telebot.command('set_timers', (ctx) => {
   }
 })
 
-telebot.launch()
+telegraf.launch()
   .then(() => logger.info('Telegram bot started in polling mode'))
   .catch((e) => logger.error('Telegram bot error', e));
 
 const broadcastMessage = (message) => {
   config.userIds.forEach(
-    userId => telebot.sendMessage(userId, message)
+    userId => telegram.sendMessage(userId, message)
   );
 }
 
@@ -141,7 +143,7 @@ var CronJob = require('cron').CronJob;
 
 new CronJob('0 0 * * * *', function() {
   config.userIds.forEach(
-    userId => telebot.sendMessage(userId, `🐈 ${feedHistory.size} meals today: ${[...feedHistory].join(' ')}`)
+    userId => telegram.sendMessage(userId, `🐈 ${feedHistory.size} meals today: ${[...feedHistory].join(' ')}`)
   );
   feedHistory.clear();
 }, null, true, config.timeZone);
