@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "cron": "1.7.2",
-    "log4js": "6.1.0",
+    "log4js": "6.4.0",
     "mqtt": "3.0.0",
     "read-last-lines": "1.7.1",
     "telegraf": "3.34.1"
